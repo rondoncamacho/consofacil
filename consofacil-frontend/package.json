@@ -1,5 +1,6 @@
 {
   "name": "consofacil-frontend",
+  "private": true,
   "version": "0.0.0",
   "type": "module",
   "scripts": {
@@ -9,16 +10,17 @@
     "test": "vitest"
   },
   "dependencies": {
-    "react": "^18.2.0",
-    "react-dom": "^18.2.0",
-    "react-router-dom": "^6.23.1",
     "@chakra-ui/react": "^2.8.2",
     "@emotion/react": "^11.11.4",
     "@emotion/styled": "^11.11.5",
-    "@supabase/supabase-js": "^2.39.8"
+    "@supabase/supabase-js": "^2.39.8",
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0",
+    "react-router-dom": "^6.23.1"
   },
   "devDependencies": {
     "vite": "^5.3.1",
-    "vitest": "^1.6.0"
+    "vitest": "^1.6.0",
+    "@vitejs/plugin-react-swc": "^3.3.2"
   }
 }
