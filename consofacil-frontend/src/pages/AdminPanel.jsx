@@ -11,10 +11,12 @@ const AdminPanel = () => {
   const [error, setError] = useState(null);
   const [page, setPage] = useState(1);
 
+  const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000';
+
   useEffect(() => {
     const fetchConsorcios = async () => {
       try {
-        const response = await fetch(`http://localhost:3000/api/consorcios?page=${page}&limit=10`, {
+        const response = await fetch(`${API_URL}/api/consorcios?page=${page}&limit=10`, {
           headers: { Authorization: `Bearer ${token}` },
         });
         const data = await response.json();

@@ -13,16 +13,18 @@ const Dashboard = () => {
   const [isAdmin, setIsAdmin] = useState(false);
   const [page, setPage] = useState(1);
 
+  const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000';
+
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const response = await fetch(`http://localhost:3000/api/notificaciones/${edificio}?page=${page}&limit=10`, {
+        const response = await fetch(`${API_URL}/api/notificaciones/${edificio}?page=${page}&limit=10`, {
           headers: { Authorization: `Bearer ${token}` },
         });
         const data = await response.json();
         if (!response.ok) throw new Error(data.error || 'Error al cargar novedades');
         setNovedades(data.data);
-        const userResponse = await fetch(`http://localhost:3000/api/auth/user-role`, {
+        const userResponse = await fetch(`${API_URL}/api/auth/user-role`, {
           headers: { Authorization: `Bearer ${token}` },
         });
         const userData = await userResponse.json();

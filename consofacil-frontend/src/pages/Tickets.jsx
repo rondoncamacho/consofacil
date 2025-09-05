@@ -12,10 +12,12 @@ const Tickets = () => {
   const [error, setError] = useState(null);
   const [page, setPage] = useState(1);
 
+  const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000';
+
   useEffect(() => {
     const fetchTickets = async () => {
       try {
-        const response = await fetch(`http://localhost:3000/api/tickets/${edificio}?page=${page}&limit=10`, {
+        const response = await fetch(`${API_URL}/api/tickets/${edificio}?page=${page}&limit=10`, {
           headers: { Authorization: `Bearer ${token}` },
         });
         const data = await response.json();
@@ -32,7 +34,7 @@ const Tickets = () => {
 
   const handleStatusChange = async (id, newStatus) => {
     try {
-      const response = await fetch(`http://localhost:3000/api/tickets/${id}`, {
+      const response = await fetch(`${API_URL}/api/tickets/${id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
         body: JSON.stringify({ estado: newStatus }),
