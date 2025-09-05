@@ -35,15 +35,28 @@ if (!process.env.SUPABASE_URL || !process.env.SUPABASE_SERVICE_ROLE) {
   process.exit(1);
 }
 
+const authenticateAndAuthorize = async (req, res, next) => {
+  const token = req.headers['authorization']?.split(' ')[1];
+  if (!token) return res.status(401).json({ error: 'Token requerido' });
+  const { data: { user }, error } = await supabase.auth.getUser(token);
+  if (error || !user) return res.status(403).json({ error: 'Token inválido o usuario no autorizado' });
+  req.user = user;
+  next();
+};
+
 app.use('/api/auth', authRoutes);
-app.use('/api/consorcios', consorcioRoutes);
-app.use('/api/expensas', expensasRoutes);
-app.use('/api/tickets', ticketsRoutes);
-app.use('/api/notificaciones', notificacionesRoutes);
+app.use('/api/consorcios', authenticateAndAuthorize, consorcioRoutes);
+app.use('/api/expensas', authenticateAndAuthorize, expensasRoutes);
+app.use('/api/tickets', authenticateAndAuthorize, ticketsRoutes);
+app.use('/api/notificaciones', authenticateAndAuthorize, notificacionesRoutes);
 
 app.get('/', (req, res) => res.send('ConsoFacil Backend'));
 
-const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => logger.info(`Servidor en port ${PORT}`));
+// Exporta la instancia de la aplicación para los tests
+module.exports = app;
 
-// Prueba de cambio a las 11:00 AM
+// Solo inicia el servidor si el archivo se ejecuta directamente, no durante los tests
+if (require.main === module) {
+  const PORT = process.env.PORT || 3000;
+  app.listen(PORT, () => logger.info(`Servidor en port ${PORT}`));
+}

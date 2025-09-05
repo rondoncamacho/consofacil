@@ -13,6 +13,7 @@ router.post('/', async (req, res) => {
 
 router.post('/edificios', async (req, res) => {
   const { consorcio_id, direccion, unidades } = req.body;
+  if (req.user.rol !== 'admin') return res.status(403).json({ error: 'Acceso denegado' });
   const { data, error } = await supabase.from('edificios').insert({
     consorcio_id,
     direccion,

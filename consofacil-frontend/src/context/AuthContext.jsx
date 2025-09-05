@@ -1,4 +1,5 @@
 import { createContext, useState, useContext, useEffect } from 'react';
+import { supabase } from '../supabaseClient';
 
 const AuthContext = createContext();
 
@@ -6,14 +7,17 @@ export const AuthProvider = ({ children }) => {
   const [token, setToken] = useState(localStorage.getItem('token'));
   const [refreshToken, setRefreshToken] = useState(localStorage.getItem('refresh_token'));
 
-  const login = (newToken, newRefreshToken) => {
-    setToken(newToken);
-    setRefreshToken(newRefreshToken);
-    localStorage.setItem('token', newToken);
-    localStorage.setItem('refresh_token', newRefreshToken);
+  const login = async (email, password) => {
+    const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+    if (error) throw error;
+    setToken(data.session.access_token);
+    setRefreshToken(data.session.refresh_token);
+    localStorage.setItem('token', data.session.access_token);
+    localStorage.setItem('refresh_token', data.session.refresh_token);
   };
 
-  const logout = () => {
+  const logout = async () => {
+    await supabase.auth.signOut();
     setToken(null);
     setRefreshToken(null);
     localStorage.removeItem('token');
@@ -22,15 +26,14 @@ export const AuthProvider = ({ children }) => {
 
   const refresh = async () => {
     if (refreshToken) {
-      try {
-        const response = await fetch('http://localhost:3000/api/auth/refresh', {
-          method: 'POST',
-          headers: { 'Authorization': `Bearer ${refreshToken}` },
-        });
-        const data = await response.json();
-        if (response.ok) login(data.token, refreshToken);
-      } catch (err) {
+      const { data, error } = await supabase.auth.refreshSession({ refresh_token: refreshToken });
+      if (error) {
         logout();
+      } else {
+        setToken(data.session.access_token);
+        setRefreshToken(data.session.refresh_token);
+        localStorage.setItem('token', data.session.access_token);
+        localStorage.setItem('refresh_token', data.session.refresh_token);
       }
     }
   };

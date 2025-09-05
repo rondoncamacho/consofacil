@@ -9,8 +9,9 @@ const supabase = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_SER
 
 router.post('/', async (req, res) => {
   const { edificio_id, mensaje } = req.body;
+  if (req.user.edificio_id !== edificio_id && req.user.rol !== 'admin') return res.status(403).json({ error: 'Acceso denegado' });
   const { data: usuarios, error } = await supabase.from('usuarios').select('email').eq('edificio_id', edificio_id);
-  if (error) return res.status(400).json({ error: error.message });
+  if (error) return res.status(400).json({ error: 'Error al obtener usuarios' });
 
   const emails = usuarios.map(u => u.email);
   await sgMail.send({
@@ -31,6 +32,7 @@ router.post('/', async (req, res) => {
 
 router.get('/:edificio_id', async (req, res) => {
   const { edificio_id } = req.params;
+  if (req.user.edificio_id !== edificio_id && req.user.rol !== 'admin') return res.status(403).json({ error: 'Acceso denegado' });
   const { data, error } = await supabase
     .from('notificaciones')
     .select('id, mensaje, fecha')

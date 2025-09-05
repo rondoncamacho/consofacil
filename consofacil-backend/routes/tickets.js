@@ -6,6 +6,7 @@ const supabase = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_SER
 
 router.post('/', async (req, res) => {
   const { edificio_id, descripcion, categoria } = req.body;
+  if (req.user.edificio_id !== edificio_id && req.user.rol !== 'admin') return res.status(403).json({ error: 'Acceso denegado' });
   const { data, error } = await supabase.from('tickets').insert({
     edificio_id,
     descripcion,
@@ -18,6 +19,7 @@ router.post('/', async (req, res) => {
 
 router.get('/:edificio_id', async (req, res) => {
   const { edificio_id } = req.params;
+  if (req.user.edificio_id !== edificio_id && req.user.rol !== 'admin') return res.status(403).json({ error: 'Acceso denegado' });
   const { page = 1, limit = 10 } = req.query;
   const { data, error, count } = await supabase
     .from('tickets')
@@ -33,6 +35,13 @@ router.put('/:id', async (req, res) => {
   const { id } = req.params;
   const { estado } = req.body;
   if (!['abierto', 'cerrado'].includes(estado)) return res.status(400).json({ error: 'Estado inválido' });
+  const { data: ticket, error: ticketError } = await supabase
+    .from('tickets')
+    .select('edificio_id')
+    .eq('id', id)
+    .single();
+  if (ticketError) return res.status(404).json({ error: 'Ticket no encontrado' });
+  if (req.user.edificio_id !== ticket.edificio_id && req.user.rol !== 'admin') return res.status(403).json({ error: 'Acceso denegado' });
   const { data, error } = await supabase.from('tickets').update({ estado }).eq('id', id).select();
   if (error) return res.status(400).json({ error: error.message });
   res.json(data);
