@@ -69,7 +69,7 @@ Docker
 
 Backend
 Clona el repositorio:
-git clone https://github.com/tu-usuario/consofacil.git
+git clone https://github.com/rondoncamacho/consofacil.git
 
 Navega al directorio del backend:
 cd consofacil/consofacil-backend
