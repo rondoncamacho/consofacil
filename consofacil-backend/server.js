@@ -1,75 +1,70 @@
-import express from "express";
-import cors from "cors";
-import bodyParser from "body-parser";
-import { createClient } from "@supabase/supabase-js";
-import dotenv from "dotenv";
-
-dotenv.config();
+require('dotenv').config({ path: `.env.${process.env.NODE_ENV || 'dev'}` });
+const express = require('express');
+const cors = require('cors');
+const helmet = require('helmet');
+const { createClient } = require('@supabase/supabase-js');
+const rateLimit = require('express-rate-limit');
+const winston = require('winston');
+const authRoutes = require('./routes/auth');
+const consorcioRoutes = require('./routes/consorcios');
+const expensasRoutes = require('./routes/expensas');
+const ticketsRoutes = require('./routes/tickets');
+const notificacionesRoutes = require('./routes/notificaciones');
 
 const app = express();
-const PORT = process.env.PORT || 3000;
 
-// Middleware global
-app.use(cors());
-app.use(bodyParser.json());
+const isProduction = process.env.NODE_ENV === 'production';
 
-// Clientes de Supabase
-const supabaseAnon = createClient(
-  process.env.SUPABASE_URL,
-  process.env.SUPABASE_ANON_KEY // 👉 para validar tokens de usuario
-);
+const transports = [
+  new winston.transports.File({ filename: 'logs/app.log' }),
+];
+if (isProduction) {
+  transports.push(new winston.transports.Console());
+}
 
-const supabaseAdmin = createClient(
-  process.env.SUPABASE_URL,
-  process.env.SUPABASE_SERVICE_ROLE // 👉 para operaciones privilegiadas
-);
+const logger = winston.createLogger({
+  level: 'info',
+  format: winston.format.combine(winston.format.timestamp(), winston.format.json()),
+  transports: transports,
+});
 
-// Middleware de autenticación y autorización
+const limiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 100,
+});
+
+app.use(limiter);
+app.use(cors({ origin: process.env.CORS_ORIGIN }));
+app.use(helmet());
+app.use(express.json());
+
+const supabase = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE);
+
+if (!process.env.SUPABASE_URL || !process.env.SUPABASE_SERVICE_ROLE) {
+  logger.error('Error: SUPABASE_URL o SUPABASE_SERVICE_ROLE no están definidas');
+  process.exit(1);
+}
+
 const authenticateAndAuthorize = async (req, res, next) => {
-  const token = req.headers["authorization"]?.split(" ")[1];
-  if (!token) return res.status(401).json({ error: "Token requerido" });
-
-  const { data: { user }, error } = await supabaseAnon.auth.getUser(token);
-
-  if (error || !user) {
-    return res.status(403).json({ error: "Token inválido o usuario no autorizado" });
-  }
-
+  const token = req.headers['authorization']?.split(' ')[1];
+  if (!token) return res.status(401).json({ error: 'Token requerido' });
+  const { data: { user }, error } = await supabase.auth.getUser(token);
+  if (error || !user) return res.status(403).json({ error: 'Token inválido o usuario no autorizado' });
   req.user = user;
   next();
 };
 
-// Rutas
-app.get("/", (req, res) => {
-  res.send("🚀 API de Consorcios funcionando");
-});
+app.use('/api/auth', authRoutes);
+app.use('/api/consorcios', authenticateAndAuthorize, consorcioRoutes);
+app.use('/api/expensas', authenticateAndAuthorize, expensasRoutes);
+app.use('/api/tickets', authenticateAndAuthorize, ticketsRoutes);
+app.use('/api/notificaciones', authenticateAndAuthorize, notificacionesRoutes);
 
-// Ejemplo: insertar usuario (solo backend con service_role)
-app.post("/usuarios", authenticateAndAuthorize, async (req, res) => {
-  const { email, nombre } = req.body;
+app.get('/', (req, res) => res.send('ConsoFacil Backend'));
 
-  const { data, error } = await supabaseAdmin
-    .from("usuarios")
-    .insert([{ email, nombre }]);
+module.exports = app;
 
-  if (error) return res.status(400).json({ error: error.message });
-
-  res.json({ message: "Usuario creado", data });
-});
-
-// Ejemplo: listar notificaciones de un usuario autenticado
-app.get("/notificaciones", authenticateAndAuthorize, async (req, res) => {
-  const { data, error } = await supabaseAdmin
-    .from("notificaciones")
-    .select("*")
-    .eq("usuario_id", req.user.id);
-
-  if (error) return res.status(400).json({ error: error.message });
-
-  res.json(data);
-});
-
-// Servidor
-app.listen(PORT, () => {
-  console.log(`✅ Servidor corriendo en http://localhost:${PORT}`);
-});
+if (require.main === module) {
+  const PORT = process.env.PORT || 3000;
+  app.listen(PORT, () => logger.info(`Servidor en port ${PORT}`));
+}

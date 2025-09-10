@@ -21,9 +21,9 @@ router.post('/registro', async (req, res) => {
 });
 
 router.post('/login', async (req, res) => {
-  const { email, password } = req.body;
-  const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+  const { data, error } = await supabase.auth.signInWithPassword(req.body);
   if (error) return res.status(400).json({ error: error.message === 'Invalid login credentials' ? 'Credenciales inválidas' : error.message });
+  if (!data.session) return res.status(400).json({ error: 'Sesión inválida, por favor intente de nuevo.' });
   const { data: userData, error: userError } = await supabase
     .from('usuarios')
     .select('edificio_id, rol')
@@ -40,6 +40,16 @@ router.post('/refresh', async (req, res) => {
   const { data, error } = await supabase.auth.refreshSession({ refresh_token: refreshToken });
   if (error) return res.status(403).json({ error: 'Refresh token inválido' });
   res.json({ token: data.session.access_token, refresh_token: data.session.refresh_token });
+});
+
+router.get('/user-role', async (req, res) => {
+  const token = req.headers['authorization']?.split(' ')[1];
+  if (!token) return res.status(401).json({ error: 'Token requerido' });
+  const { data: { user }, error } = await supabase.auth.getUser(token);
+  if (error || !user) return res.status(403).json({ error: 'Token inválido o usuario no autorizado' });
+  const { data: userData, error: userError } = await supabase.from('usuarios').select('rol').eq('id', user.id).single();
+  if (userError) return res.status(400).json({ error: 'Usuario no encontrado' });
+  res.json({ rol: userData.rol });
 });
 
 module.exports = router;
