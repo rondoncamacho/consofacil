@@ -1,5 +1,3 @@
-// consofacil-frontend/src/pages/Dashboard.jsx
-
 import { Box, Heading, Text, VStack, Button, Select } from '@chakra-ui/react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useEffect, useState } from 'react';
@@ -18,6 +16,9 @@ const Dashboard = () => {
 
   useEffect(() => {
     const fetchData = async () => {
+      // AQUÍ: Añade esta línea para ver el token en la consola
+      console.log('Token que se va a enviar:', token); 
+
       try {
         const response = await fetch(`${backendUrl}/api/notificaciones/${edificio}?page=${page}&limit=10`, {
           headers: { Authorization: `Bearer ${token}` },
@@ -25,7 +26,7 @@ const Dashboard = () => {
         const data = await response.json();
         if (!response.ok) throw new Error(data.error || 'Error al cargar novedades');
         
-        // **CORRECCIÓN CLAVE:** El backend ya devuelve el array de datos directamente.
+        // El backend ya devuelve el array de datos directamente.
         setNovedades(data);
         
         const userResponse = await fetch(`${backendUrl}/api/auth/user-role`, {
@@ -43,7 +44,7 @@ const Dashboard = () => {
   }, [edificio, token, page, backendUrl]);
 
   if (loading) return <Text>Cargando...</Text>;
-  // **CORRECCIÓN CLAVE:** Muestra el mensaje de error del backend.
+  // Muestra el mensaje de error del backend.
   if (error) return <Text color="red.500">{error}</Text>;
 
   return (
