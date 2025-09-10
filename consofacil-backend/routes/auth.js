@@ -1,4 +1,5 @@
 // consofacil-backend/routes/auth.js
+
 const express = require('express');
 const { createClient } = require('@supabase/supabase-js');
 
@@ -31,8 +32,6 @@ router.post('/login', async (req, res) => {
     .eq('id', data.user.id)
     .single();
   if (userError) return res.status(400).json({ error: 'Usuario no encontrado' });
-  // La sesión y los tokens se manejan automáticamente en el cliente de Supabase.
-  // No necesitas refrescar la sesión manualmente aquí.
   res.json({ token: data.session.access_token, refresh_token: data.session.refresh_token, edificio_id: userData.edificio_id, rol: userData.rol });
 });
 

@@ -1,4 +1,5 @@
 // consofacil-backend/routes/notificaciones.js
+
 const express = require('express');
 const { createClient } = require('@supabase/supabase-js');
 const sgMail = require('@sendgrid/mail');
@@ -15,7 +16,6 @@ router.post('/', async (req, res) => {
   if (error) return res.status(400).json({ error: 'Error al obtener usuarios' });
 
   const emails = usuarios.map(u => u.email);
-  // **CORRECCIÓN CLAVE:** Uso de sendMultiple para enviar a un array de correos
   const msg = {
     to: emails,
     from: process.env.EMAIL_USER,
@@ -23,7 +23,7 @@ router.post('/', async (req, res) => {
     text: mensaje,
   };
   try {
-    await sgMail.send(msg); // O sgMail.sendMultiple(msg) si es necesario, pero la API de SendGrid ya soporta arrays en 'to'
+    await sgMail.send(msg);
   } catch (sgError) {
     console.error('Error al enviar correo con SendGrid:', sgError);
   }

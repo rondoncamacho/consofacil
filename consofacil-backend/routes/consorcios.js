@@ -1,3 +1,5 @@
+// consofacil-backend/routes/consorcios.js
+
 const express = require('express');
 const { createClient } = require('@supabase/supabase-js');
 

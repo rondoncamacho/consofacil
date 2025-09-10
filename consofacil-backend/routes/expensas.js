@@ -1,4 +1,5 @@
 // consofacil-backend/routes/expensas.js
+
 const express = require('express');
 const { createClient } = require('@supabase/supabase-js');
 
@@ -41,7 +42,6 @@ router.get('/:edificio_id', async (req, res) => {
     .eq('edificio_id', edificio_id);
   if (error) return res.status(400).json({ error: error.message });
 
-  // **CORRECCIÓN CLAVE:** Manejo correcto de la promesa asíncrona de createSignedUrl
   const signedData = await Promise.all(
     data.map(async (e) => {
       const { data: signed, error: signError } = await supabase.storage
