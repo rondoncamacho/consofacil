@@ -1,5 +1,4 @@
 // consofacil-backend/routes/notificaciones.js
-
 const express = require('express');
 const { createClient } = require('@supabase/supabase-js');
 const sgMail = require('@sendgrid/mail');
@@ -11,56 +10,43 @@ const supabase = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_SER
 
 router.post('/', async (req, res) => {
   const { edificio_id, mensaje } = req.body;
-  if (req.user.edificio_id !== edificio_id && req.user.rol !== 'admin') {
-    return res.status(403).json({ error: 'Acceso denegado' });
-  }
-
+  if (req.user.edificio_id !== edificio_id && req.user.rol !== 'admin') return res.status(403).json({ error: 'Acceso denegado' });
   const { data: usuarios, error } = await supabase.from('usuarios').select('email').eq('edificio_id', edificio_id);
-  if (error) {
-    return res.status(400).json({ error: 'Error al obtener usuarios' });
-  }
+  if (error) return res.status(400).json({ error: 'Error al obtener usuarios' });
 
   const emails = usuarios.map(u => u.email);
+  // **CORRECCIÓN CLAVE:** Uso de sendMultiple para enviar a un array de correos
   const msg = {
     to: emails,
     from: process.env.EMAIL_USER,
     subject: 'Notificación ConsoFacil',
     text: mensaje,
   };
-  
-  // **CORRECCIÓN CLAVE:** Enviar el correo en segundo plano
-  // No esperamos la respuesta de SendGrid para no bloquear la API.
-  sgMail.send(msg)
-    .then(() => console.log('Correo enviado a los usuarios'))
-    .catch((sgError) => console.error('Error al enviar correo con SendGrid:', sgError));
+  try {
+    await sgMail.send(msg); // O sgMail.sendMultiple(msg) si es necesario, pero la API de SendGrid ya soporta arrays en 'to'
+  } catch (sgError) {
+    console.error('Error al enviar correo con SendGrid:', sgError);
+  }
 
   const { data, error: insertError } = await supabase.from('notificaciones').insert({
     edificio_id,
     mensaje,
     fecha: new Date()
   }).select();
-
-  if (insertError) {
-    return res.status(400).json({ error: insertError.message });
-  }
-
+  if (insertError) return res.status(400).json({ error: insertError.message });
   res.json(data);
 });
 
 router.get('/:edificio_id', async (req, res) => {
   const { edificio_id } = req.params;
-  if (req.user.edificio_id !== edificio_id && req.user.rol !== 'admin') {
-    return res.status(403).json({ error: 'Acceso denegado' });
-  }
+  if (req.user.edificio_id !== edificio_id && req.user.rol !== 'admin') return res.status(403).json({ error: 'Acceso denegado' });
   const { data, error } = await supabase
     .from('notificaciones')
     .select('id, mensaje, fecha')
     .eq('edificio_id', edificio_id)
     .order('fecha', { ascending: false })
     .limit(10);
-  if (error) {
-    return res.status(400).json({ error: error.message });
-  }
+  if (error) return res.status(400).json({ error: error.message });
   res.json(data);
 });
 

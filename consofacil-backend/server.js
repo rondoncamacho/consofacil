@@ -16,6 +16,7 @@ const ticketsRoutes = require('./routes/tickets');
 const notificacionesRoutes = require('./routes/notificaciones');
 
 const app = express();
+app.set('trust proxy', 1); // Solución para el error de X-Forwarded-For
 
 const isProduction = process.env.NODE_ENV === 'production';
 
@@ -48,7 +49,6 @@ app.use(limiter);
 app.use(helmet());
 app.use(express.json());
 
-// Se crea una sola instancia de Supabase con la clave de servicio
 const supabase = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE);
 
 if (!process.env.SUPABASE_URL || !process.env.SUPABASE_SERVICE_ROLE) {
@@ -65,7 +65,6 @@ const authenticateAndAuthorize = async (req, res, next) => {
 
   const { data: { user }, error } = await supabase.auth.getUser(token);
 
-  // AQUÍ: Este console.log te dirá por qué falla la validación
   console.log('Resultado de la validación del token:', { user, error });
 
   if (error || !user) {
