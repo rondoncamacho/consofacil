@@ -1,3 +1,4 @@
+// consofacil-backend/routes/expensas.js
 const express = require('express');
 const { createClient } = require('@supabase/supabase-js');
 
@@ -21,7 +22,7 @@ router.post('/', async (req, res) => {
   if (error) return res.status(400).json({ error: error.message });
   const { signedURL, error: signError } = await supabase.storage
     .from('expensas')
-    .createSignedUrl(data.path, 3600); // 1 hora de expiración
+    .createSignedUrl(data.path, 3600);
   if (signError) return res.status(400).json({ error: signError.message });
   const { data: expensa, error: insertError } = await supabase
     .from('expensas')
@@ -39,7 +40,18 @@ router.get('/:edificio_id', async (req, res) => {
     .select('id, archivo_url, vencimiento')
     .eq('edificio_id', edificio_id);
   if (error) return res.status(400).json({ error: error.message });
-  res.json(data.map(e => ({ ...e, archivo_url: supabase.storage.from('expensas').createSignedUrl(e.archivo_url, 3600).signedURL })));
+
+  // **CORRECCIÓN CLAVE:** Manejo correcto de la promesa asíncrona de createSignedUrl
+  const signedData = await Promise.all(
+    data.map(async (e) => {
+      const { data: signed, error: signError } = await supabase.storage
+        .from('expensas')
+        .createSignedUrl(e.archivo_url, 3600);
+      if (signError) return { ...e, archivo_url: null };
+      return { ...e, archivo_url: signed.signedUrl };
+    })
+  );
+  res.json(signedData);
 });
 
 module.exports = router;
