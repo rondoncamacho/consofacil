@@ -1,49 +1,42 @@
-// ... (imports y configuraciones iniciales)
+// Archivo: consofacil-backend/server.js
 
+// ... (imports y configuraciones)
+const express = require('express');
+const { createClient } = require('@supabase/supabase-js');
+// ... (resto de imports)
+
+const app = express();
 const isProduction = process.env.NODE_ENV === 'production';
+// ... (otras configuraciones)
 
-// ... (configuración de logger, limiter, y app.use)
+// Crea una sola instancia de Supabase con la clave de servicio
+const supabase = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE);
 
-app.use(cors({
-  origin: isProduction
-    ? process.env.CORS_ORIGIN
-    : 'http://localhost:5173',
-  credentials: true
-}));
-
-// ... (otros app.use)
-
-const supabaseServiceRole = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE);
-const supabaseAnon = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_ANON_KEY);
-
-if (!process.env.SUPABASE_URL || !process.env.SUPABASE_SERVICE_ROLE || !process.env.SUPABASE_ANON_KEY) {
-  logger.error('Error: Variables de entorno de Supabase no están definidas');
-  process.exit(1);
-}
+// ... (verificación de variables de entorno)
 
 const authenticateAndAuthorize = async (req, res, next) => {
   const token = req.headers['authorization']?.split(' ')[1];
   if (!token) {
-    logger.warn('Acceso no autorizado: token no proporcionado');
     return res.status(401).json({ error: 'Token requerido' });
   }
 
-  // Usa la instancia con la clave anónima para verificar el token
-  const { data: { user }, error } = await supabaseAnon.auth.getUser(token);
+  // **Paso 1: Valida el token del usuario con la instancia de Supabase**
+  // Esta función no requiere la clave anónima en el backend; la clave de servicio es suficiente
+  const { data: { user }, error } = await supabase.auth.getUser(token);
   if (error || !user) {
-    logger.error(`Error de autenticación: ${error?.message || 'Token inválido'}`);
+    // Si el token no es válido o está expirado, devuelve 403 Forbidden
     return res.status(403).json({ error: 'Token inválido o usuario no autorizado' });
   }
 
-  // Ahora, usa el cliente con rol de servicio para obtener datos privados
-  const { data: userData, error: userError } = await supabaseServiceRole
+  // **Paso 2: Usa el ID del usuario validado para obtener sus datos de la base de datos**
+  // La clave de servicio permite esta consulta sin problemas
+  const { data: userData, error: userError } = await supabase
     .from('usuarios')
     .select('rol, edificio_id')
     .eq('id', user.id)
     .single();
 
   if (userError || !userData) {
-    logger.error(`Error al obtener datos de usuario: ${userError?.message || 'Datos no encontrados'}`);
     return res.status(404).json({ error: 'Usuario no encontrado' });
   }
 
