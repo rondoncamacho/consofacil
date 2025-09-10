@@ -33,8 +33,15 @@ const limiter = rateLimit({
   max: 100,
 });
 
+// Configuración de CORS con origen dinámico
+app.use(cors({
+  origin: isProduction 
+    ? 'https://consofacil.vercel.app' 
+    : 'http://localhost:5173',
+  credentials: true
+}));
+
 app.use(limiter);
-app.use(cors({ origin: process.env.CORS_ORIGIN }));
 app.use(helmet());
 app.use(express.json());
 
@@ -64,7 +71,6 @@ app.get('/', (req, res) => res.send('ConsoFacil Backend'));
 
 module.exports = app;
 
-if (require.main === module) {
-  const PORT = process.env.PORT || 3000;
-  app.listen(PORT, () => logger.info(`Servidor en port ${PORT}`));
-}
+// Iniciar el servidor fuera del condicional
+const PORT = process.env.PORT || 3000;
+app.listen(PORT, () => logger.info(`Servidor en port ${PORT}`));
