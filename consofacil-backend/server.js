@@ -1,5 +1,4 @@
 // consofacil-backend/server.js
-
 require('dotenv').config({
   path: process.env.NODE_ENV === 'production' ? '.env.prod' : '.env.dev'
 });
@@ -49,7 +48,7 @@ app.use(limiter);
 app.use(helmet());
 app.use(express.json());
 
-// **CORRECCIÓN 1:** Se crea una sola instancia de Supabase con la clave de servicio
+// Se crea una sola instancia de Supabase con la clave de servicio
 const supabase = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE);
 
 if (!process.env.SUPABASE_URL || !process.env.SUPABASE_SERVICE_ROLE) {
@@ -64,8 +63,11 @@ const authenticateAndAuthorize = async (req, res, next) => {
     return res.status(401).json({ error: 'Token requerido' });
   }
 
-  // **CORRECCIÓN 2:** Usa la única instancia de Supabase con la clave de servicio para todo
   const { data: { user }, error } = await supabase.auth.getUser(token);
+
+  // AQUÍ: Este console.log te dirá por qué falla la validación
+  console.log('Resultado de la validación del token:', { user, error });
+
   if (error || !user) {
     logger.error(`Error de autenticación: ${error?.message || 'Token inválido'}`);
     return res.status(403).json({ error: 'Token inválido o usuario no autorizado' });
