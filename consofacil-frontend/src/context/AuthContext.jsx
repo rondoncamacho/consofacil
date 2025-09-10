@@ -1,63 +1,43 @@
+// consofacil-frontend>src>context>AuthContext.jsx
+
 import { createContext, useState, useContext, useEffect } from 'react';
 import { supabase } from '../supabaseClient';
 
 const AuthContext = createContext();
 
 export const AuthProvider = ({ children }) => {
-  const [token, setToken] = useState(localStorage.getItem('token'));
-  const [refreshToken, setRefreshToken] = useState(localStorage.getItem('refresh_token'));
+  const [session, setSession] = useState(null);
+  const [loading, setLoading] = useState(true);
 
-  // La función login ahora acepta directamente los tokens.
-  // Esto es más coherente, ya que el componente Login.jsx es el que maneja la autenticación inicial.
-  const login = (accessToken, newRefreshToken) => {
-    setToken(accessToken);
-    setRefreshToken(newRefreshToken);
-    localStorage.setItem('token', accessToken);
-    localStorage.setItem('refresh_token', newRefreshToken);
-  };
+  useEffect(() => {
+    // Escuchar los cambios en el estado de autenticación
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      setSession(session);
+      setLoading(false);
+    });
 
-  const logout = async () => {
-    await supabase.auth.signOut();
-    setToken(null);
-    setRefreshToken(null);
-    localStorage.removeItem('token');
-    localStorage.removeItem('refresh_token');
-  };
+    // Limpiar la suscripción al desmontar el componente
+    return () => subscription.unsubscribe();
+  }, []);
 
-  const refresh = async () => {
-    if (refreshToken) {
-      const { data, error } = await supabase.auth.refreshSession({ refresh_token: refreshToken });
-      if (error) {
-        logout();
-      } else {
-        setToken(data.session.access_token);
-        setRefreshToken(data.session.refresh_token);
-        localStorage.setItem('token', data.session.access_token);
-        localStorage.setItem('refresh_token', data.session.refresh_token);
-      }
-    }
-  };
+  const login = async (email, password) => {
+    const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+    if (error) throw error;
+    return data;
+  };
 
-  useEffect(() => {
-    // Supabase.auth.onAuthStateChange es más robusto para manejar cambios en el estado de autenticación
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
-      if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
-        login(session.access_token, session.refresh_token);
-      }
-      if (event === 'SIGNED_OUT') {
-        logout();
-      }
-    });
-    return () => subscription.unsubscribe();
-  }, []);
+  const logout = async () => {
+    const { error } = await supabase.auth.signOut();
+    if (error) throw error;
+  };
 
-  return (
-    <AuthContext.Provider value={{ token, login, logout }}>
-      {children}
-    </AuthContext.Provider>
-  );
+  const token = session?.access_token || null;
+
+  return (
+    <AuthContext.Provider value={{ token, login, logout }}>
+      {!loading && children}
+    </AuthContext.Provider>
+  );
 };
 
 export const useAuth = () => useContext(AuthContext);
-
-export default AuthContext;
