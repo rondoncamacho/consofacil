@@ -16,13 +16,11 @@ export const AuthProvider = ({ children }) => {
         setSession(session);
         setToken(session.access_token);
       }
-      // Se mueve aquí para que solo se ejecute después de obtener la sesión
       setLoading(false);
     };
 
     getSession();
 
-    // Escuchar cambios en el estado de autenticación
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
       setSession(session);
       setToken(session?.access_token || null);
