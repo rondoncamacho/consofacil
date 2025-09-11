@@ -1,32 +1,30 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
+// consofacil-frontend/src/context/AuthContext.jsx
+
+import { createContext, useContext, useState, useEffect } from 'react';
 import { supabase } from '../supabaseClient';
+import { useNavigate } from 'react-router-dom';
 
 const AuthContext = createContext();
 
 export const AuthProvider = ({ children }) => {
   const [session, setSession] = useState(null);
   const [token, setToken] = useState(null);
+  const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
+  const navigate = useNavigate();
 
   useEffect(() => {
-    // Obtener la sesión inicial
-    const getSession = async () => {
-      const { data: { session }, error } = await supabase.auth.getSession();
-      if (session) {
+    // Escuchar cambios de autenticación
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      (event, session) => {
         setSession(session);
-        setToken(session.access_token);
+        setUser(session?.user ?? null);
+        setToken(session?.access_token ?? null);
+        setLoading(false);
       }
-      setLoading(false);
-    };
+    );
 
-    getSession();
-
-    // Escuchar cambios en el estado de autenticación
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-      setSession(session);
-      setToken(session?.access_token || null);
-    });
-
+    // Limpiar la suscripción
     return () => {
       subscription.unsubscribe();
     };
@@ -36,18 +34,24 @@ export const AuthProvider = ({ children }) => {
     setLoading(true);
     const { data, error } = await supabase.auth.signInWithPassword({ email, password });
     setLoading(false);
-    if (error) throw error;
+
+    if (error) {
+      throw error;
+    }
+
+    // Devuelve el objeto completo para que el componente Login pueda acceder a la sesión
     return data;
   };
 
   const logout = async () => {
-    const { error } = await supabase.auth.signOut();
-    if (error) console.error("Error al cerrar sesión:", error);
+    await supabase.auth.signOut();
+    navigate('/');
   };
 
   const value = {
     session,
     token,
+    user,
     loading,
     login,
     logout,
