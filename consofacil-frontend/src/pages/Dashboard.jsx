@@ -10,10 +10,11 @@ import { FaBell, FaFileInvoiceDollar, FaRegFileAlt, FaTicketAlt } from 'react-ic
 
 const Dashboard = () => {
   const { edificio } = useParams();
-  const { token } = useAuth();
+  const { user } = useAuth();
   const [novedades, setNovedades] = useState([]);
   const [expensa, setExpensa] = useState(null); 
   const [edificioInfo, setEdificioInfo] = useState(null);
+  const [userRole, setUserRole] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const backendUrl = import.meta.env.VITE_BACKEND_URL;
@@ -32,25 +33,40 @@ const Dashboard = () => {
         if (edificioError) throw new Error('No se pudo obtener la información del edificio.');
         setEdificioInfo(edificioData);
 
-        // Fetch Novedades
-        const novedadesResponse = await fetch(`${backendUrl}/api/notificaciones/${edificio}`, {
-          headers: { Authorization: `Bearer ${token}` },
-        });
-        const novedadesData = await novedadesResponse.json();
-        if (!novedadesResponse.ok) throw new Error(novedadesData.error || 'Error al cargar novedades');
-        setNovedades(novedadesData);
+        // Obtenemos el rol y la unidad del usuario logueado
+        if (user) {
+          const { data: userData, error: userError } = await supabase
+            .from('usuarios')
+            .select('rol, unidad')
+            .eq('email', user.email)
+            .single();
 
-        // Fetch Expensas
-        const { data: expensasData, error: expensasError } = await supabase
-          .from('expensas')
-          .select('*')
-          .eq('edificio_id', edificio)
-          .order('created_at', { ascending: false })
-          .limit(1);
+          if (userError) throw userError;
+          setUserRole(userData.rol);
+        
+          // Fetch Novedades
+          const novedadesResponse = await fetch(`${backendUrl}/api/notificaciones/${edificio}`, {
+            headers: { Authorization: `Bearer ${user.token}` },
+          });
+          const novedadesData = await novedadesResponse.json();
+          if (!novedadesResponse.ok) throw new Error(novedadesData.error || 'Error al cargar novedades');
+          setNovedades(novedadesData);
 
-        if (expensasError) throw expensasError;
-        if (expensasData && expensasData.length > 0) {
-          setExpensa(expensasData[0]);
+          // Fetch Expensas (solo para inquilinos y propietarios)
+          if (userData.rol === 'inquilino' || userData.rol === 'propietario') {
+            const { data: expensasData, error: expensasError } = await supabase
+              .from('expensas')
+              .select('*')
+              .eq('edificio_id', edificio)
+              .eq('unidad', userData.unidad)
+              .order('created_at', { ascending: false })
+              .limit(1);
+
+            if (expensasError) throw expensasError;
+            if (expensasData && expensasData.length > 0) {
+              setExpensa(expensasData[0]);
+            }
+          }
         }
       } catch (err) {
         setError(err.message);
@@ -59,14 +75,14 @@ const Dashboard = () => {
       }
     };
     fetchData();
-  }, [edificio, token, backendUrl]);
+  }, [edificio, user, backendUrl]);
 
   if (loading) return <Text textAlign="center" mt={20}>Cargando...</Text>;
   if (error) return <Text textAlign="center" mt={20} color="red.500">{error}</Text>;
 
   return (
     <Flex h="100vh" w="100vw">
-      <Sidebar edificioInfo={edificioInfo} edificioId={edificio} />
+      <Sidebar edificioInfo={edificioInfo} edificioId={edificio} userRole={userRole} />
 
       <Box flex="1" p={10} bg={mainContentBg} overflowY="auto">
         <Heading mb={6}>Panel de Control</Heading>
@@ -88,28 +104,36 @@ const Dashboard = () => {
           />
           
           <SimpleGrid columns={{ base: 1, md: 2, lg: 3 }} spacing={8}>
-            <Card
-              title="Expensas"
-              icon={FaFileInvoiceDollar}
-              content={
-                expensa ? (
-                  <VStack align="start" spacing={2}>
-                    <Text fontWeight="bold">{expensa.titulo}</Text>
-                    <Text fontSize="sm" color="gray.500">Vencimiento: {new Date(expensa.vencimiento).toLocaleDateString()}</Text>
-                    <Button as={Link} href={expensa.archivo_url} isExternal colorScheme="teal" size="sm">
-                      Descargar
-                    </Button>
-                  </VStack>
-                ) : (
-                  <Text>No hay expensas disponibles.</Text>
-                )
-              }
-            />
-            <Card
-              title="Documentos"
-              icon={FaRegFileAlt}
-              content={<DocumentosPanel edificioId={edificio} />}
-            />
+            {/* Muestra Expensas solo si el rol es 'inquilino' o 'propietario' */}
+            {(userRole === 'inquilino' || userRole === 'propietario') && (
+              <Card
+                title="Expensas"
+                icon={FaFileInvoiceDollar}
+                content={
+                  expensa ? (
+                    <VStack align="start" spacing={2}>
+                      <Text fontWeight="bold">{expensa.titulo}</Text>
+                      <Text fontSize="sm" color="gray.500">Vencimiento: {new Date(expensa.vencimiento).toLocaleDateString()}</Text>
+                      <Button as={Link} href={expensa.archivo_url} isExternal colorScheme="teal" size="sm">
+                        Descargar
+                      </Button>
+                    </VStack>
+                  ) : (
+                    <Text>No hay expensas disponibles.</Text>
+                  )
+                }
+              />
+            )}
+
+            {/* Muestra Documentos solo si el rol es 'admin' o 'propietario' */}
+            {(userRole === 'admin' || userRole === 'propietario') && (
+              <Card
+                title="Documentos"
+                icon={FaRegFileAlt}
+                content={<DocumentosPanel edificioId={edificio} />}
+              />
+            )}
+            
             <Card
               title="Mis Tickets"
               icon={FaTicketAlt}
