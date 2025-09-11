@@ -6,12 +6,12 @@ import { supabase } from '../supabaseClient';
 import Sidebar from '../components/Sidebar';
 import { Card } from '../components/Card';
 import DocumentosPanel from '../components/DocumentosPanel';
-import DocumentoUploader from '../components/DocumentoUploader'; 
+import DocumentoUploader from '../components/DocumentoUploader'; // Importa el nuevo componente
 import { FaBell, FaFileInvoiceDollar, FaRegFileAlt, FaTicketAlt } from 'react-icons/fa';
 
 const Dashboard = () => {
   const { edificio } = useParams();
-  const { session, token, loading: authLoading, user } = useAuth();
+  const { user, token } = useAuth(); // Asegúrate de obtener 'user' también
   const [novedades, setNovedades] = useState([]);
   const [expensa, setExpensa] = useState(null); 
   const [edificioInfo, setEdificioInfo] = useState(null);
@@ -20,11 +20,11 @@ const Dashboard = () => {
   const [error, setError] = useState(null);
   const backendUrl = import.meta.env.VITE_BACKEND_URL;
   const mainContentBg = useColorModeValue("gray.50", "gray.900");
-  const [documentosKey, setDocumentosKey] = useState(0); 
+
+  const [documentosKey, setDocumentosKey] = useState(0); // Clave para forzar la recarga de DocumentosPanel
 
   const fetchData = async () => {
     try {
-      // 1. Fetch de la información del edificio
       const { data: edificioData, error: edificioError } = await supabase
         .from('edificios')
         .select('direccion, consorcio_id')
@@ -33,7 +33,6 @@ const Dashboard = () => {
       if (edificioError) throw new Error('No se pudo obtener la información del edificio.');
       setEdificioInfo(edificioData);
 
-      // 2. Fetch del rol del usuario
       const { data: userData, error: userError } = await supabase
         .from('usuarios')
         .select('rol, unidad')
@@ -42,15 +41,13 @@ const Dashboard = () => {
       if (userError) throw userError;
       setUserRole(userData.rol);
     
-      // 3. Fetch de las novedades
       const novedadesResponse = await fetch(`${backendUrl}/api/notificaciones/${edificio}`, {
         headers: { Authorization: `Bearer ${token}` },
       });
       const novedadesData = await novedadesResponse.json();
       if (!novedadesResponse.ok) throw new Error(novedadesData.error || 'Error al cargar novedades');
-      setNovedades(novedades);
+      setNovedades(novedadesData);
 
-      // 4. Fetch de las expensas (solo para inquilinos y propietarios)
       if (userData.rol === 'inquilino' || userData.rol === 'propietario') {
         const { data: expensasData, error: expensasError } = await supabase
           .from('expensas')
@@ -72,16 +69,15 @@ const Dashboard = () => {
   };
 
   useEffect(() => {
-    if (!authLoading && user) {
-      fetchData();
-    }
-  }, [edificio, user, token, backendUrl, authLoading]);
+    fetchData();
+  }, [edificio, user, token, backendUrl]);
 
+  // Función para recargar la lista de documentos después de una subida
   const handleDocumentUploadSuccess = () => {
     setDocumentosKey(prevKey => prevKey + 1);
   };
 
-  if (authLoading || loading) return <Text textAlign="center" mt={20}>Cargando...</Text>;
+  if (loading) return <Text textAlign="center" mt={20}>Cargando...</Text>;
   if (error) return <Text textAlign="center" mt={20} color="red.500">{error}</Text>;
 
   return (
@@ -128,22 +124,19 @@ const Dashboard = () => {
               />
             )}
 
-            {(userRole === 'admin' || userRole === 'conserje' || userRole === 'propietario' || userRole === 'inquilino' || userRole === 'proveedor') && (
+            {(userRole === 'admin' || userRole === 'propietario') && (
               <Card
                 title="Documentos"
                 icon={FaRegFileAlt}
                 content={
                   <VStack align="stretch" spacing={4}>
-                    {(userRole === 'admin' || userRole === 'conserje') && (
-                      <DocumentoUploader 
-                        edificioId={edificio} 
-                        onUploadSuccess={handleDocumentUploadSuccess} 
-                      />
-                    )}
-                    <DocumentosPanel 
-                      key={documentosKey} 
+                    <DocumentoUploader 
                       edificioId={edificio} 
-                      userRole={userRole}
+                      onUploadSuccess={handleDocumentUploadSuccess} 
+                    />
+                    <DocumentosPanel 
+                      key={documentosKey} // La clave fuerza a React a recrear el componente
+                      edificioId={edificio} 
                     />
                   </VStack>
                 }
