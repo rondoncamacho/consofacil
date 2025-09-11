@@ -13,7 +13,8 @@ import {
   InputGroup,
   InputLeftElement,
   Icon,
-  Flex
+  Flex,
+  Image,
 } from '@chakra-ui/react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '../supabaseClient';
@@ -33,13 +34,8 @@ const Login = () => {
     setLoading(true);
     setError(null);
     try {
-      // 🔑 Corrección clave: `login` debe devolver el objeto completo.
-      // Ya tienes este código en tu `AuthContext`, así que esto funcionará.
       const { user } = await login(email, password);
 
-      // 🔑 La condición de carrera ocurre aquí.
-      // La solución es obtener los datos del usuario usando el cliente de Supabase.
-      // El `AuthContext` ya actualizó el estado con el `user` recién autenticado.
       const { data: userData, error: userError } = await supabase
         .from('usuarios')
         .select('edificio_id, rol')
@@ -54,49 +50,46 @@ const Login = () => {
         throw new Error('No se obtuvo edificio_id');
       }
     } catch (err) {
-      // Manejar el error de credenciales incorrectas
-      if (err.message === 'Invalid login credentials') {
-        setError('Credenciales inválidas. Por favor, intente de nuevo.');
-      } else {
-        setError('Ocurrió un error. Por favor, intente de nuevo más tarde.');
-        console.error("Login error:", err);
-      }
+      setError('Credenciales inválidas. Por favor, intente de nuevo.');
+      console.error("Login error:", err);
     } finally {
       setLoading(false);
     }
   };
 
-  const formBgColor = useColorModeValue('white', 'gray.800');
-  const borderColor = useColorModeValue('gray.200', 'gray.700');
-
   return (
-    <Center minH="100vh" bg={useColorModeValue('gray.50', 'gray.900')}>
+    <Center
+      minH="100vh"
+      bg={useColorModeValue('gray.50', 'gray.900')}
+    >
       <Box
-        p={8}
+        p={{ base: 6, md: 12 }}
         maxWidth="450px"
         width="100%"
         borderWidth="1px"
-        borderRadius="lg"
+        borderRadius="xl"
         boxShadow="xl"
-        bg={formBgColor}
-        borderColor={borderColor}
+        bg={useColorModeValue('white', 'gray.800')}
+        borderColor={useColorModeValue('gray.200', 'gray.700')}
       >
         <VStack spacing={6} as="form" onSubmit={handleLogin} align="stretch">
-          <Heading
-            as="h1"
-            size="xl"
-            textAlign="center"
-            bgGradient="linear(to-l, teal.500, blue.500)"
-            bgClip="text"
-          >
-            ConsoFacil
+          <Center mb={4}>
+            <Image
+              src="/path/to/your/logo.png" // ⚠️ Cambia esta ruta por la de tu logo
+              alt="Logo ConsoFacil"
+              h="50px"
+            />
+          </Center>
+
+          <Heading as="h1" size="xl" textAlign="center">
+            Bienvenido
           </Heading>
           <Text
-            fontSize="lg"
+            fontSize="md"
             textAlign="center"
             color={useColorModeValue('gray.600', 'gray.400')}
           >
-            Inicia sesión en tu cuenta
+            Inicia sesión para acceder a tu cuenta
           </Text>
 
           <FormControl isRequired>
@@ -153,24 +146,28 @@ const Login = () => {
             loadingText="Iniciando sesión..."
             mt={4}
             size="lg"
-            boxShadow="md"
-            _hover={{ boxShadow: 'lg' }}
           >
             Iniciar Sesión
           </Button>
 
           <Flex justifyContent="space-between" fontSize="sm" mt={2}>
-            <Text>
-              ¿Olvidaste tu contraseña?{' '}
-              <Text as="a" color="teal.500" href="#">
-                Recuperar
-              </Text>
+            <Text
+              as="a"
+              color="teal.500"
+              href="#"
+              onClick={() => {}}
+              _hover={{ textDecoration: 'underline' }}
+            >
+              ¿Olvidaste tu contraseña?
             </Text>
-            <Text>
-              ¿No tienes cuenta?{' '}
-              <Text as="a" color="teal.500" href="#">
-                Regístrate
-              </Text>
+            <Text
+              as="a"
+              color="teal.500"
+              href="#"
+              onClick={() => {}}
+              _hover={{ textDecoration: 'underline' }}
+            >
+              Regístrate
             </Text>
           </Flex>
         </VStack>
