@@ -53,7 +53,7 @@ const Sidebar = ({ edificioInfo, edificioId }) => {
         <Image
           src="/assets/consofacil-logo.png" 
           alt="Logo ConsoFacil"
-          boxSize="120px"
+          boxSize="220px"
           objectFit="contain"
         />
       </Box>

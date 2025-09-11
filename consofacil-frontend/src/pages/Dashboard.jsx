@@ -1,4 +1,4 @@
-import { Box, Heading, Text, VStack, Flex, SimpleGrid, useColorModeValue } from '@chakra-ui/react';
+import { Box, Heading, Text, VStack, Flex, SimpleGrid, useColorModeValue, Button, Link } from '@chakra-ui/react';
 import { useParams } from 'react-router-dom';
 import { useEffect, useState } from 'react';
 import { useAuth } from '../context/AuthContext';
@@ -12,6 +12,7 @@ const Dashboard = () => {
   const { edificio } = useParams();
   const { token } = useAuth();
   const [novedades, setNovedades] = useState([]);
+  const [expensa, setExpensa] = useState(null); 
   const [edificioInfo, setEdificioInfo] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -31,6 +32,7 @@ const Dashboard = () => {
         if (edificioError) throw new Error('No se pudo obtener la información del edificio.');
         setEdificioInfo(edificioData);
 
+        // Fetch Novedades
         const novedadesResponse = await fetch(`${backendUrl}/api/notificaciones/${edificio}`, {
           headers: { Authorization: `Bearer ${token}` },
         });
@@ -38,6 +40,18 @@ const Dashboard = () => {
         if (!novedadesResponse.ok) throw new Error(novedadesData.error || 'Error al cargar novedades');
         setNovedades(novedadesData);
 
+        // Fetch Expensas
+        const { data: expensasData, error: expensasError } = await supabase
+          .from('expensas')
+          .select('*')
+          .eq('edificio_id', edificio)
+          .order('created_at', { ascending: false })
+          .limit(1);
+
+        if (expensasError) throw expensasError;
+        if (expensasData && expensasData.length > 0) {
+          setExpensa(expensasData[0]);
+        }
       } catch (err) {
         setError(err.message);
       } finally {
@@ -77,7 +91,19 @@ const Dashboard = () => {
             <Card
               title="Expensas"
               icon={FaFileInvoiceDollar}
-              content="Aquí se mostrarán las expensas."
+              content={
+                expensa ? (
+                  <VStack align="start" spacing={2}>
+                    <Text fontWeight="bold">{expensa.titulo}</Text>
+                    <Text fontSize="sm" color="gray.500">Vencimiento: {new Date(expensa.vencimiento).toLocaleDateString()}</Text>
+                    <Button as={Link} href={expensa.archivo_url} isExternal colorScheme="teal" size="sm">
+                      Descargar
+                    </Button>
+                  </VStack>
+                ) : (
+                  <Text>No hay expensas disponibles.</Text>
+                )
+              }
             />
             <Card
               title="Documentos"
