@@ -1,49 +1,61 @@
-import { render, screen, fireEvent } from '@testing-library/react';
-import { AuthProvider, useAuth } from '../src/context/AuthContext';
-import { supabase } from '../src/supabaseClient';
+import React, { createContext, useContext, useState, useEffect } from 'react';
+import { supabase } from '../supabaseClient';
 
-jest.mock('../src/supabaseClient', () => ({
-  supabase: {
-    auth: {
-      signInWithPassword: jest.fn(),
-      signOut: jest.fn(),
-      refreshSession: jest.fn(),
-    },
-  },
-}));
+const AuthContext = createContext();
 
-const TestComponent = () => {
-  const { login, logout } = useAuth();
-  return (
-    <div>
-      <button onClick={() => login('test@example.com', 'password123')}>Login</button>
-      <button onClick={logout}>Logout</button>
-    </div>
-  );
+export const AuthProvider = ({ children }) => {
+  const [session, setSession] = useState(null);
+  const [token, setToken] = useState(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    // Obtener la sesión inicial
+    const getSession = async () => {
+      const { data: { session }, error } = await supabase.auth.getSession();
+      if (session) {
+        setSession(session);
+        setToken(session.access_token);
+      }
+      setLoading(false);
+    };
+
+    getSession();
+
+    // Escuchar cambios en el estado de autenticación
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      setSession(session);
+      setToken(session?.access_token || null);
+    });
+
+    return () => {
+      subscription.unsubscribe();
+    };
+  }, []);
+
+  const login = async (email, password) => {
+    setLoading(true);
+    const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+    setLoading(false);
+    if (error) throw error;
+    return data;
+  };
+
+  const logout = async () => {
+    const { error } = await supabase.auth.signOut();
+    if (error) console.error("Error al cerrar sesión:", error);
+  };
+
+  const value = {
+    session,
+    token,
+    loading,
+    login,
+    logout,
+  };
+
+  return <AuthContext.Provider value={value}>{!loading && children}</AuthContext.Provider>;
 };
 
-describe('AuthContext', () => {
-  it('debe manejar login', async () => {
-    supabase.auth.signInWithPassword.mockResolvedValue({ data: { session: { access_token: 'token', refresh_token: 'refresh' } }, error: null });
-    render(
-      <AuthProvider>
-        <TestComponent />
-      </AuthProvider>
-    );
-    fireEvent.click(screen.getByText('Login'));
-    expect(localStorage.getItem('token')).toBe('token');
-    expect(localStorage.getItem('refresh_token')).toBe('refresh');
-  });
-
-  it('debe manejar logout', async () => {
-    supabase.auth.signOut.mockResolvedValue();
-    render(
-      <AuthProvider>
-        <TestComponent />
-      </AuthProvider>
-    );
-    fireEvent.click(screen.getByText('Logout'));
-    expect(localStorage.getItem('token')).toBeNull();
-    expect(localStorage.getItem('refresh_token')).toBeNull();
-  });
-});
+export const useAuth = () => {
+  return useContext(AuthContext);
+};
