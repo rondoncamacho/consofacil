@@ -10,11 +10,11 @@ import { FaBell, FaFileInvoiceDollar, FaRegFileAlt, FaTicketAlt } from 'react-ic
 
 const Dashboard = () => {
   const { edificio } = useParams();
-  const { user } = useAuth(); // Usamos 'user' para acceder a la info de la sesión
+  const { user } = useAuth();
   const [novedades, setNovedades] = useState([]);
   const [expensa, setExpensa] = useState(null); 
   const [edificioInfo, setEdificioInfo] = useState(null);
-  const [userRole, setUserRole] = useState(null); // Nuevo estado para el rol
+  const [userRole, setUserRole] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const backendUrl = import.meta.env.VITE_BACKEND_URL;
