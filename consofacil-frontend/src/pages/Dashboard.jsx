@@ -6,12 +6,12 @@ import { supabase } from '../supabaseClient';
 import Sidebar from '../components/Sidebar';
 import { Card } from '../components/Card';
 import DocumentosPanel from '../components/DocumentosPanel';
-import DocumentoUploader from '../components/DocumentoUploader'; // Importa el nuevo componente
+import DocumentoUploader from '../components/DocumentoUploader'; 
 import { FaBell, FaFileInvoiceDollar, FaRegFileAlt, FaTicketAlt } from 'react-icons/fa';
 
 const Dashboard = () => {
   const { edificio } = useParams();
-  const { user, token } = useAuth(); // Asegúrate de obtener 'user' también
+  const { session, token, loading: authLoading, user } = useAuth(); 
   const [novedades, setNovedades] = useState([]);
   const [expensa, setExpensa] = useState(null); 
   const [edificioInfo, setEdificioInfo] = useState(null);
@@ -20,8 +20,7 @@ const Dashboard = () => {
   const [error, setError] = useState(null);
   const backendUrl = import.meta.env.VITE_BACKEND_URL;
   const mainContentBg = useColorModeValue("gray.50", "gray.900");
-
-  const [documentosKey, setDocumentosKey] = useState(0); // Clave para forzar la recarga de DocumentosPanel
+  const [documentosKey, setDocumentosKey] = useState(0); 
 
   const fetchData = async () => {
     try {
@@ -40,7 +39,7 @@ const Dashboard = () => {
         .single();
       if (userError) throw userError;
       setUserRole(userData.rol);
-    
+
       const novedadesResponse = await fetch(`${backendUrl}/api/notificaciones/${edificio}`, {
         headers: { Authorization: `Bearer ${token}` },
       });
@@ -69,15 +68,16 @@ const Dashboard = () => {
   };
 
   useEffect(() => {
-    fetchData();
-  }, [edificio, user, token, backendUrl]);
+    if (!authLoading && user) { // Aquí es donde se agrega la lógica de espera
+      fetchData();
+    }
+  }, [edificio, user, token, backendUrl, authLoading]);
 
-  // Función para recargar la lista de documentos después de una subida
   const handleDocumentUploadSuccess = () => {
     setDocumentosKey(prevKey => prevKey + 1);
   };
 
-  if (loading) return <Text textAlign="center" mt={20}>Cargando...</Text>;
+  if (authLoading || loading) return <Text textAlign="center" mt={20}>Cargando...</Text>;
   if (error) return <Text textAlign="center" mt={20} color="red.500">{error}</Text>;
 
   return (
@@ -86,7 +86,7 @@ const Dashboard = () => {
 
       <Box flex="1" p={10} bg={mainContentBg} overflowY="auto">
         <Heading mb={6}>Panel de Control</Heading>
-        
+
         <VStack spacing={8} align="stretch">
           <Card 
             title="Novedades Recientes" 
@@ -102,7 +102,7 @@ const Dashboard = () => {
               <Text>No hay novedades para este edificio.</Text>
             )} 
           />
-          
+
           <SimpleGrid columns={{ base: 1, md: 2, lg: 3 }} spacing={8}>
             {(userRole === 'inquilino' || userRole === 'propietario') && (
               <Card
@@ -124,25 +124,28 @@ const Dashboard = () => {
               />
             )}
 
-            {(userRole === 'admin' || userRole === 'propietario') && (
+            {(userRole === 'admin' || userRole === 'conserje' || userRole === 'propietario' || userRole === 'inquilino' || userRole === 'proveedor') && (
               <Card
                 title="Documentos"
                 icon={FaRegFileAlt}
                 content={
                   <VStack align="stretch" spacing={4}>
-                    <DocumentoUploader 
-                      edificioId={edificio} 
-                      onUploadSuccess={handleDocumentUploadSuccess} 
-                    />
+                    {userRole === 'admin' || userRole === 'conserje' ? (
+                        <DocumentoUploader 
+                          edificioId={edificio} 
+                          onUploadSuccess={handleDocumentUploadSuccess} 
+                        />
+                    ) : null}
                     <DocumentosPanel 
-                      key={documentosKey} // La clave fuerza a React a recrear el componente
+                      key={documentosKey} 
                       edificioId={edificio} 
+                      userRole={userRole}
                     />
                   </VStack>
                 }
               />
             )}
-            
+
             <Card
               title="Mis Tickets"
               icon={FaTicketAlt}
