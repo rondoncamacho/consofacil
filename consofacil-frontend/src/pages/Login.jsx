@@ -60,7 +60,22 @@ const Login = () => {
   return (
     <Center
       minH="100vh"
-      bg={useColorModeValue('gray.50', 'gray.900')}
+      w="100vw"
+      bgImage="url('/assets/rascacielos.jpg')"
+      bgPos="center"
+      bgSize="cover"
+      bgRepeat="no-repeat"
+      _before={{
+        content: '""',
+        display: 'block',
+        position: 'absolute',
+        top: 0,
+        left: 0,
+        w: '100%',
+        h: '100%',
+        bg: 'rgba(0, 0, 0, 0.5)',
+        zIndex: 0,
+      }}
     >
       <Box
         p={{ base: 6, md: 12 }}
@@ -69,13 +84,15 @@ const Login = () => {
         borderWidth="1px"
         borderRadius="xl"
         boxShadow="xl"
-        bg={useColorModeValue('white', 'gray.800')}
+        bg={useColorModeValue('whiteAlpha.900', 'gray.700')}
         borderColor={useColorModeValue('gray.200', 'gray.700')}
+        position="relative"
+        zIndex={1}
       >
         <VStack spacing={6} as="form" onSubmit={handleLogin} align="stretch">
           <Center mb={4}>
             <Image
-              src="/path/to/your/logo.png" // ⚠️ Cambia esta ruta por la de tu logo
+              src="/assets/consofacil-logo.png"
               alt="Logo ConsoFacil"
               h="50px"
             />

@@ -51,7 +51,7 @@ const Sidebar = ({ edificioInfo, edificioId }) => {
     >
       <Box textAlign="center" mb={4}>
         <Image
-          src="/assets/consofacil-logo.png" // Esta es la ruta correcta
+          src="/assets/consofacil-logo.png" 
           alt="Logo ConsoFacil"
           boxSize="120px"
           objectFit="contain"
