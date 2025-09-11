@@ -11,7 +11,7 @@ import { FaBell, FaFileInvoiceDollar, FaRegFileAlt, FaTicketAlt } from 'react-ic
 
 const Dashboard = () => {
   const { edificio } = useParams();
-  const { session, token, loading: authLoading, user } = useAuth(); 
+  const { session, token, loading: authLoading, user } = useAuth();
   const [novedades, setNovedades] = useState([]);
   const [expensa, setExpensa] = useState(null); 
   const [edificioInfo, setEdificioInfo] = useState(null);
@@ -24,6 +24,7 @@ const Dashboard = () => {
 
   const fetchData = async () => {
     try {
+      // 1. Fetch de la información del edificio
       const { data: edificioData, error: edificioError } = await supabase
         .from('edificios')
         .select('direccion, consorcio_id')
@@ -32,6 +33,7 @@ const Dashboard = () => {
       if (edificioError) throw new Error('No se pudo obtener la información del edificio.');
       setEdificioInfo(edificioData);
 
+      // 2. Fetch del rol del usuario
       const { data: userData, error: userError } = await supabase
         .from('usuarios')
         .select('rol, unidad')
@@ -39,14 +41,16 @@ const Dashboard = () => {
         .single();
       if (userError) throw userError;
       setUserRole(userData.rol);
-
+    
+      // 3. Fetch de las novedades
       const novedadesResponse = await fetch(`${backendUrl}/api/notificaciones/${edificio}`, {
         headers: { Authorization: `Bearer ${token}` },
       });
       const novedadesData = await novedadesResponse.json();
       if (!novedadesResponse.ok) throw new Error(novedadesData.error || 'Error al cargar novedades');
-      setNovedades(novedadesData);
+      setNovedades(novedades);
 
+      // 4. Fetch de las expensas (solo para inquilinos y propietarios)
       if (userData.rol === 'inquilino' || userData.rol === 'propietario') {
         const { data: expensasData, error: expensasError } = await supabase
           .from('expensas')
@@ -68,7 +72,7 @@ const Dashboard = () => {
   };
 
   useEffect(() => {
-    if (!authLoading && user) { // Aquí es donde se agrega la lógica de espera
+    if (!authLoading && user) {
       fetchData();
     }
   }, [edificio, user, token, backendUrl, authLoading]);
@@ -86,7 +90,7 @@ const Dashboard = () => {
 
       <Box flex="1" p={10} bg={mainContentBg} overflowY="auto">
         <Heading mb={6}>Panel de Control</Heading>
-
+        
         <VStack spacing={8} align="stretch">
           <Card 
             title="Novedades Recientes" 
@@ -102,7 +106,7 @@ const Dashboard = () => {
               <Text>No hay novedades para este edificio.</Text>
             )} 
           />
-
+          
           <SimpleGrid columns={{ base: 1, md: 2, lg: 3 }} spacing={8}>
             {(userRole === 'inquilino' || userRole === 'propietario') && (
               <Card
@@ -130,12 +134,12 @@ const Dashboard = () => {
                 icon={FaRegFileAlt}
                 content={
                   <VStack align="stretch" spacing={4}>
-                    {userRole === 'admin' || userRole === 'conserje' ? (
-                        <DocumentoUploader 
-                          edificioId={edificio} 
-                          onUploadSuccess={handleDocumentUploadSuccess} 
-                        />
-                    ) : null}
+                    {(userRole === 'admin' || userRole === 'conserje') && (
+                      <DocumentoUploader 
+                        edificioId={edificio} 
+                        onUploadSuccess={handleDocumentUploadSuccess} 
+                      />
+                    )}
                     <DocumentosPanel 
                       key={documentosKey} 
                       edificioId={edificio} 
@@ -145,7 +149,7 @@ const Dashboard = () => {
                 }
               />
             )}
-
+            
             <Card
               title="Mis Tickets"
               icon={FaTicketAlt}
