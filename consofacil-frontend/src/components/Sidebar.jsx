@@ -6,6 +6,7 @@ import {
   Button,
   useColorModeValue,
   Icon,
+  Image
 } from '@chakra-ui/react';
 import { useNavigate } from 'react-router-dom';
 import { FaHome, FaTicketAlt, FaRegFileAlt, FaSignOutAlt, FaUserShield } from 'react-icons/fa';
@@ -48,16 +49,13 @@ const Sidebar = ({ edificioInfo, edificioId }) => {
       borderRight="1px"
       borderColor={useColorModeValue('gray.200', 'gray.700')}
     >
-      <Heading size="md" mb={4} textAlign="center">
-        ConsoFacil
-      </Heading>
       <Box textAlign="center" mb={4}>
-        <Text fontSize="md" fontWeight="bold">
-          {edificioInfo ? edificioInfo.direccion : ''}
-        </Text>
-        <Text fontSize="sm" color="gray.500">
-          Edificio {edificioId}
-        </Text>
+        <Image
+          src="/assets/consofacil-logo.png" // Esta es la ruta correcta
+          alt="Logo ConsoFacil"
+          boxSize="120px"
+          objectFit="contain"
+        />
       </Box>
 
       <Button
