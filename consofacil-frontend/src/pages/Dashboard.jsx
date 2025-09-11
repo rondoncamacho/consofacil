@@ -12,19 +12,20 @@ import { FaBell, FaFileInvoiceDollar, FaRegFileAlt, FaTicketAlt } from 'react-ic
 const Dashboard = () => {
   const { edificio } = useParams();
   const { session, token, loading: authLoading, user } = useAuth();
+  
   const [novedades, setNovedades] = useState([]);
   const [expensa, setExpensa] = useState(null); 
   const [edificioInfo, setEdificioInfo] = useState(null);
   const [userRole, setUserRole] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+
   const backendUrl = import.meta.env.VITE_BACKEND_URL;
   const mainContentBg = useColorModeValue("gray.50", "gray.900");
   const [documentosKey, setDocumentosKey] = useState(0); 
 
   const fetchData = async () => {
     try {
-      // Fetch de la información del edificio
       const { data: edificioData, error: edificioError } = await supabase
         .from('edificios')
         .select('direccion, consorcio_id')
@@ -33,52 +34,63 @@ const Dashboard = () => {
       if (edificioError) throw new Error('No se pudo obtener la información del edificio.');
       setEdificioInfo(edificioData);
 
-      // Fetch del rol del usuario
-      const { data: userData, error: userError } = await supabase
-        .from('usuarios')
-        .select('rol, unidad')
-        .eq('email', user.email)
-        .single();
-      if (userError) throw userError;
-      setUserRole(userData.rol);
-    
-      // Fetch de las novedades
-      const novedadesResponse = await fetch(`${backendUrl}/api/notificaciones/${edificio}`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      const novedadesData = await novedadesResponse.json();
-      if (!novedadesResponse.ok) throw new Error(novedadesData.error || 'Error al cargar novedades');
-      setNovedades(novedadesData);
+      if (user) {
+        const { data: userData, error: userError } = await supabase
+          .from('usuarios')
+          .select('rol, unidad')
+          .eq('email', user.email)
+          .single();
+        if (userError) throw userError;
+        setUserRole(userData.rol);
+      
+        const novedadesResponse = await fetch(`${backendUrl}/api/notificaciones/${edificio}`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        const novedadesData = await novedadesResponse.json();
+        if (!novedadesResponse.ok) throw new Error(novedadesData.error || 'Error al cargar novedades');
+        setNovedades(novedadesData);
 
-      // Fetch de las expensas (solo para inquilinos y propietarios)
-      if (userData.rol === 'inquilino' || userData.rol === 'propietario') {
-        const { data: expensasData, error: expensasError } = await supabase
-          .from('expensas')
-          .select('*')
-          .eq('edificio_id', edificio)
-          .eq('unidad', userData.unidad)
-          .order('created_at', { ascending: false })
-          .limit(1);
-        if (expensasError) throw expensasError;
-        if (expensasData && expensasData.length > 0) {
-          setExpensa(expensasData[0]);
+        if (userData.rol === 'inquilino' || userData.rol === 'propietario') {
+          console.log("Fetching expensas for...");
+          console.log("Edificio ID:", edificio);
+          console.log("Unidad:", userData.unidad);
+          
+          const { data: expensasData, error: expensasError } = await supabase
+            .from('expensas')
+            .select('*')
+            .eq('edificio_id', edificio)
+            .eq('unidad', userData.unidad)
+            .order('created_at', { ascending: false })
+            .limit(1);
+    
+          if (expensasError) {
+              console.error("Error al obtener expensas:", expensasError);
+          } else {
+              console.log("Expensas encontradas:", expensasData);
+          }
+    
+          if (expensasData && expensasData.length > 0) {
+              setExpensa(expensasData[0]);
+          }
         }
       }
     } catch (err) {
       setError(err.message);
     } finally {
-      setLoading(false);
+      setLoading(false); 
     }
   };
 
   useEffect(() => {
-    // La página solo carga los datos si el usuario está autenticado y la sesión ya se verificó
-    if (!authLoading && user) {
-      fetchData();
+    if (!authLoading) {
+      if (user) {
+        fetchData();
+      } else {
+        setLoading(false);
+      }
     }
   }, [edificio, user, token, backendUrl, authLoading]);
 
-  // Esta función se pasa al uploader para forzar la recarga de los documentos
   const handleDocumentUploadSuccess = () => {
     setDocumentosKey(prevKey => prevKey + 1);
   };
@@ -135,14 +147,12 @@ const Dashboard = () => {
               icon={FaRegFileAlt}
               content={
                 <VStack align="stretch" spacing={4}>
-                  {/* Se muestra el uploader solo si el rol del usuario es admin o conserje */}
                   {(userRole === 'admin' || userRole === 'conserje') && (
                     <DocumentoUploader 
                       edificioId={edificio} 
                       onUploadSuccess={handleDocumentUploadSuccess} 
                     />
                   )}
-                  {/* El panel de documentos se muestra a todos los usuarios */}
                   <DocumentosPanel 
                     key={documentosKey} 
                     edificioId={edificio} 
