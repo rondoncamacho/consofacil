@@ -16,6 +16,7 @@ import {
   Flex
 } from '@chakra-ui/react';
 import { useNavigate } from 'react-router-dom';
+import { supabase } from '../supabaseClient';
 import { useAuth } from '../context/AuthContext';
 import { FaLock, FaEnvelope } from 'react-icons/fa'; // Importa iconos de React
 
@@ -32,23 +33,15 @@ const Login = () => {
     setLoading(true);
     setError(null);
     try {
-      // login devuelve { user, session }
-      const { user, session } = await login(email, password);
+      const { user } = await login(email, password);
 
-      if (!session?.access_token) {
-        throw new Error('No se obtuvo un token de sesión');
-      }
+      const { data: userData, error: userError } = await supabase
+        .from('usuarios')
+        .select('edificio_id, rol')
+        .eq('id', user.id)
+        .single();
 
-      // Llamar al backend para obtener el edificio_id y rol
-      const res = await fetch(`${import.meta.env.VITE_BACKEND_URL}/api/user-role`, {
-        headers: { Authorization: `Bearer ${session.access_token}` },
-      });
-
-      if (!res.ok) {
-        throw new Error('Error obteniendo datos del usuario');
-      }
-
-      const userData = await res.json();
+      if (userError) throw userError;
 
       if (userData.edificio_id) {
         navigate(`/${userData.edificio_id}/dashboard`);
