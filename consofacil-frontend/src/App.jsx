@@ -1,21 +1,7 @@
-import { Routes, Route } from 'react-router-dom';
-import Login from './pages/Login';
-import Dashboard from './pages/Dashboard';
-import Tickets from './pages/Tickets';
-import AdminPanel from './pages/AdminPanel';
-import { AuthProvider } from './context/AuthContext';
+import { ChakraProvider } from '@chakra-ui/react';
 
 function App() {
-  return (
-    <AuthProvider>
-      <Routes>
-        <Route path="/" element={<Login />} />
-        <Route path="/:edificio/dashboard" element={<Dashboard />} />
-        <Route path="/:edificio/tickets" element={<Tickets />} />
-        <Route path="/admin" element={<AdminPanel />} />
-      </Routes>
-    </AuthProvider>
-  );
+  return <ChakraProvider></ChakraProvider>;
 }
 
 export default App;
