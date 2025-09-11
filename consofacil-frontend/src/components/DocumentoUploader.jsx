@@ -4,7 +4,7 @@ import { Box, Button, Input, useToast, VStack, Select, Text } from '@chakra-ui/r
 
 const DocumentoUploader = ({ edificioId, onUploadSuccess }) => {
   const [file, setFile] = useState(null);
-  const [categoria, setCategoria] = useState(''); // Estado para la categoría
+  const [categoria, setCategoria] = useState('');
   const [uploading, setUploading] = useState(false);
   const toast = useToast();
 
@@ -28,8 +28,7 @@ const DocumentoUploader = ({ edificioId, onUploadSuccess }) => {
     }
 
     setUploading(true);
-    // Usamos la categoría en la ruta del archivo en el bucket
-    const filePath = `${edificioId}/${categoria}/${Date.now()}_${file.name}`; 
+    const filePath = `${edificioId}/${categoria}/${Date.now()}_${file.name}`;
 
     try {
       const { data: uploadData, error: uploadError } = await supabase.storage
@@ -48,7 +47,7 @@ const DocumentoUploader = ({ edificioId, onUploadSuccess }) => {
           nombre: file.name,
           edificio_id: edificioId,
           url: publicURL,
-          categoria: categoria, // Guardamos la categoría en la base de datos
+          categoria: categoria,
         });
 
       if (dbError) throw dbError;
