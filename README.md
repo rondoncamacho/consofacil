@@ -92,3 +92,8 @@ npm install
 
 Inicia la aplicación:
 npm run dev
+
+Caracteristias: 
+Los inquilinos y propietarios verán las tarjetas de "Expensas" y "Novedades".
+Los propietarios y administradores verán la tarjeta de "Documentos".
+Los conserjes y proveedores solo verán las tarjetas de "Novedades" y "Mis Tickets".
