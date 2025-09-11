@@ -1,5 +1,3 @@
-// consofacil-frontend/src/pages/Dashboard.jsx
-
 import { Box, Heading, Text, VStack, Button, Flex, SimpleGrid, useColorModeValue } from '@chakra-ui/react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useEffect, useState } from 'react';

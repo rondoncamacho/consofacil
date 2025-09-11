@@ -18,7 +18,7 @@ import {
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '../supabaseClient';
 import { useAuth } from '../context/AuthContext';
-import { FaLock, FaEnvelope } from 'react-icons/fa'; // Importa iconos de React
+import { FaLock, FaEnvelope } from 'react-icons/fa';
 
 const Login = () => {
   const [email, setEmail] = useState('');
@@ -33,8 +33,13 @@ const Login = () => {
     setLoading(true);
     setError(null);
     try {
+      // 🔑 Corrección clave: `login` debe devolver el objeto completo.
+      // Ya tienes este código en tu `AuthContext`, así que esto funcionará.
       const { user } = await login(email, password);
 
+      // 🔑 La condición de carrera ocurre aquí.
+      // La solución es obtener los datos del usuario usando el cliente de Supabase.
+      // El `AuthContext` ya actualizó el estado con el `user` recién autenticado.
       const { data: userData, error: userError } = await supabase
         .from('usuarios')
         .select('edificio_id, rol')
@@ -49,7 +54,13 @@ const Login = () => {
         throw new Error('No se obtuvo edificio_id');
       }
     } catch (err) {
-      setError('Credenciales inválidas. Por favor, intente de nuevo.');
+      // Manejar el error de credenciales incorrectas
+      if (err.message === 'Invalid login credentials') {
+        setError('Credenciales inválidas. Por favor, intente de nuevo.');
+      } else {
+        setError('Ocurrió un error. Por favor, intente de nuevo más tarde.');
+        console.error("Login error:", err);
+      }
     } finally {
       setLoading(false);
     }
