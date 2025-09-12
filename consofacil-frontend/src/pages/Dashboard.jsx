@@ -26,6 +26,11 @@ const Dashboard = () => {
 
   const fetchData = async () => {
     try {
+      if (!user) {
+        setLoading(false);
+        return;
+      }
+      
       const { data: edificioData, error: edificioError } = await supabase
         .from('edificios')
         .select('direccion, consorcio_id')
@@ -33,45 +38,43 @@ const Dashboard = () => {
         .single();
       if (edificioError) throw new Error('No se pudo obtener la información del edificio.');
       setEdificioInfo(edificioData);
-
-      if (user) {
-        const { data: userData, error: userError } = await supabase
-          .from('usuarios')
-          .select('rol, unidad')
-          .eq('email', user.email)
-          .single();
-        if (userError) throw userError;
-        setUserRole(userData.rol);
       
-        const novedadesResponse = await fetch(`${backendUrl}/api/notificaciones/${edificio}`, {
-          headers: { Authorization: `Bearer ${token}` },
-        });
-        const novedadesData = await novedadesResponse.json();
-        if (!novedadesResponse.ok) throw new Error(novedadesData.error || 'Error al cargar novedades');
-        setNovedades(novedadesData);
+      const { data: userData, error: userError } = await supabase
+        .from('usuarios')
+        .select('rol, unidad')
+        .eq('email', user.email)
+        .single();
+      if (userError) throw userError;
+      setUserRole(userData.rol);
+    
+      const novedadesResponse = await fetch(`${backendUrl}/api/notificaciones/${edificio}`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      const novedadesData = await novedadesResponse.json();
+      if (!novedadesResponse.ok) throw new Error(novedadesData.error || 'Error al cargar novedades');
+      setNovedades(novedadesData);
 
-        if (userData.rol === 'inquilino' || userData.rol === 'propietario') {
-          console.log("Fetching expensas for...");
-          console.log("Edificio ID:", edificio);
-          console.log("Unidad:", userData.unidad);
-          
-          const { data: expensasData, error: expensasError } = await supabase
-            .from('expensas')
-            .select('*')
-            .eq('edificio_id', edificio)
-            .eq('unidad', userData.unidad)
-            .order('created_at', { ascending: false })
-            .limit(1);
-    
-          if (expensasError) {
-              console.error("Error al obtener expensas:", expensasError);
-          } else {
-              console.log("Expensas encontradas:", expensasData);
-          }
-    
-          if (expensasData && expensasData.length > 0) {
-              setExpensa(expensasData[0]);
-          }
+      if (userData.rol === 'inquilino' || userData.rol === 'propietario') {
+        console.log("Fetching expensas for...");
+        console.log("Edificio ID:", edificio);
+        console.log("Unidad:", userData.unidad);
+        
+        const { data: expensasData, error: expensasError } = await supabase
+          .from('expensas')
+          .select('*')
+          .eq('edificio_id', edificio)
+          .eq('unidad', userData.unidad)
+          .order('created_at', { ascending: false })
+          .limit(1);
+  
+        if (expensasError) {
+            console.error("Error al obtener expensas:", expensasError);
+        } else {
+            console.log("Expensas encontradas:", expensasData);
+        }
+  
+        if (expensasData && expensasData.length > 0) {
+            setExpensa(expensasData[0]);
         }
       }
     } catch (err) {
@@ -82,14 +85,10 @@ const Dashboard = () => {
   };
 
   useEffect(() => {
-    if (!authLoading) {
-      if (user) {
-        fetchData();
-      } else {
-        setLoading(false);
-      }
+    if (session) {
+      fetchData();
     }
-  }, [edificio, user, token, backendUrl, authLoading]);
+  }, [session, edificio, user, token, backendUrl]);
 
   const handleDocumentUploadSuccess = () => {
     setDocumentosKey(prevKey => prevKey + 1);
