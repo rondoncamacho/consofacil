@@ -14,25 +14,10 @@ import { useAuth } from '../context/AuthContext';
 import { useEffect, useState } from 'react';
 import { supabase } from '../supabaseClient';
 
-const Sidebar = ({ edificioInfo, edificioId }) => {
+const Sidebar = ({ edificioInfo, edificioId, userRole }) => {
   const navigate = useNavigate();
   const { token, logout } = useAuth();
-  const [isAdmin, setIsAdmin] = useState(false);
   const sidebarBg = useColorModeValue('white', 'gray.800');
-
-  useEffect(() => {
-    const checkAdmin = async () => {
-      if (!token) return;
-      const { data: { user }, error } = await supabase.auth.getUser(token);
-      if (user && !error) {
-        const { data: userData, error: userError } = await supabase.from('usuarios').select('rol').eq('id', user.id).single();
-        if (userData && !userError) {
-          setIsAdmin(userData.rol === 'admin');
-        }
-      }
-    };
-    checkAdmin();
-  }, [token]);
 
   const handleLogout = () => {
     logout();
@@ -79,7 +64,16 @@ const Sidebar = ({ edificioInfo, edificioId }) => {
       >
         Documentos
       </Button>
-      {isAdmin && (
+      {userRole === 'superadmin' && (
+        <Button
+          variant="ghost"
+          leftIcon={<Icon as={FaUserShield} />}
+          onClick={() => navigate('/superadmin')}
+        >
+          Panel Super Admin
+        </Button>
+      )}
+      {userRole === 'admin' && (
         <Button
           variant="ghost"
           leftIcon={<Icon as={FaUserShield} />}
